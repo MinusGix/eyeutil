@@ -50,10 +50,7 @@ where
     }
 
     /// Creates an InputSlice at current position, for [amount] bytes
-    /// uses
-    /// ```rust
-    /// input.seek(SeekFrom::Current(0))?
-    /// ```
+    /// uses stream_len
     /// to get the current position.
     /// Note: `[current position] + amount` performs saturating addition
     pub fn at(mut input: F, amount: u64) -> std::io::Result<Self> {
