@@ -43,7 +43,10 @@ impl Writable for u8 {
     where
         W: Write,
     {
-        w.write_all(&self.to_le_bytes())?;
+        w.write_all(&match d.endian {
+            Endian::Big => self.to_be_bytes(),
+            Endian::Little => self.to_le_bytes(),
+        })?;
         Ok(())
     }
 }
@@ -52,7 +55,10 @@ impl Writable for i8 {
     where
         W: Write,
     {
-        w.write_all(&self.to_le_bytes())?;
+        w.write_all(&match d.endian {
+            Endian::Big => self.to_be_bytes(),
+            Endian::Little => self.to_le_bytes(),
+        })?;
         Ok(())
     }
 }
@@ -61,7 +67,10 @@ impl Writable for u16 {
     where
         W: Write,
     {
-        w.write_all(&self.to_le_bytes())?;
+        w.write_all(&match d.endian {
+            Endian::Big => self.to_be_bytes(),
+            Endian::Little => self.to_le_bytes(),
+        })?;
         Ok(())
     }
 }
@@ -70,7 +79,10 @@ impl Writable for i16 {
     where
         W: Write,
     {
-        w.write_all(&self.to_le_bytes())?;
+        w.write_all(&match d.endian {
+            Endian::Big => self.to_be_bytes(),
+            Endian::Little => self.to_le_bytes(),
+        })?;
         Ok(())
     }
 }
@@ -79,7 +91,10 @@ impl Writable for u32 {
     where
         W: Write,
     {
-        w.write_all(&self.to_le_bytes())?;
+        w.write_all(&match d.endian {
+            Endian::Big => self.to_be_bytes(),
+            Endian::Little => self.to_le_bytes(),
+        })?;
         Ok(())
     }
 }
@@ -88,7 +103,10 @@ impl Writable for i32 {
     where
         W: Write,
     {
-        w.write_all(&self.to_le_bytes())?;
+        w.write_all(&match d.endian {
+            Endian::Big => self.to_be_bytes(),
+            Endian::Little => self.to_le_bytes(),
+        })?;
         Ok(())
     }
 }
@@ -97,7 +115,10 @@ impl Writable for u64 {
     where
         W: Write,
     {
-        w.write_all(&self.to_le_bytes())?;
+        w.write_all(&match d.endian {
+            Endian::Big => self.to_be_bytes(),
+            Endian::Little => self.to_le_bytes(),
+        })?;
         Ok(())
     }
 }
@@ -106,7 +127,10 @@ impl Writable for i64 {
     where
         W: Write,
     {
-        w.write_all(&self.to_le_bytes())?;
+        w.write_all(&match d.endian {
+            Endian::Big => self.to_be_bytes(),
+            Endian::Little => self.to_le_bytes(),
+        })?;
         Ok(())
     }
 }
