@@ -22,7 +22,12 @@ pub enum Endian {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct WriteData {
-    endian: Endian,
+    pub endian: Endian,
+}
+impl WriteData {
+    pub fn from_endian(endian: Endian) -> Self {
+        Self { endian }
+    }
 }
 
 // TODO: it'd be nice to support Little|Big endian as a more general crate for my parsing needs
