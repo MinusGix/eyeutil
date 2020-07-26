@@ -38,7 +38,7 @@ impl Writable for u8 {
     where
         W: Write,
     {
-        w.write_all(&[*self])?;
+        w.write_all(&self.to_le_bytes())?;
         Ok(())
     }
 }
