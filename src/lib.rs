@@ -1,5 +1,6 @@
 use std::io::{Seek, SeekFrom};
 
+pub mod parse;
 pub mod slice;
 pub mod writable;
 
