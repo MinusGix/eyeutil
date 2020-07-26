@@ -134,6 +134,30 @@ impl Writable for i64 {
         Ok(())
     }
 }
+impl Writable for f32 {
+    fn write_to<W>(&self, w: &mut W, d: WriteData) -> WriteResult
+    where
+        W: Write,
+    {
+        w.write_all(&match d.endian {
+            Endian::Big => self.to_be_bytes(),
+            Endian::Little => self.to_le_bytes(),
+        })?;
+        Ok(())
+    }
+}
+impl Writable for f64 {
+    fn write_to<W>(&self, w: &mut W, d: WriteData) -> WriteResult
+    where
+        W: Write,
+    {
+        w.write_all(&match d.endian {
+            Endian::Big => self.to_be_bytes(),
+            Endian::Little => self.to_le_bytes(),
+        })?;
+        Ok(())
+    }
+}
 impl<T> Writable for &[T]
 where
     T: Writable,
@@ -160,6 +184,5 @@ where
         self.as_slice().write_to(w, d)
     }
 }
-
 
 // TODO: add tests
