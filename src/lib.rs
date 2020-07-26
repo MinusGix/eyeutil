@@ -3,6 +3,14 @@ use std::io::{Seek, SeekFrom};
 pub mod slice;
 pub mod writable;
 
+// TODO: once const generics come around, we can use this as a template parameter instead?
+// Similar to byteorder
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum Endian {
+    Little,
+    Big,
+}
+
 pub fn stream_position<F>(f: &mut F) -> std::io::Result<u64>
 where
     F: Seek,

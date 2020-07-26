@@ -1,3 +1,4 @@
+use crate::Endian;
 use std::io::Write;
 
 pub type WriteResult = Result<(), WriteError>;
@@ -10,14 +11,6 @@ impl From<std::io::Error> for WriteError {
     fn from(v: std::io::Error) -> Self {
         Self::Io(v)
     }
-}
-
-// TODO: once const generics come around, we can use this as a template parameter instead?
-// Similar to byteorder
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum Endian {
-    Little,
-    Big,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
