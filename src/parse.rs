@@ -185,7 +185,7 @@ pub trait Parse<D>: Sized
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek;
 }
@@ -194,7 +194,7 @@ impl<D> Parse<D> for u8
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
@@ -210,7 +210,7 @@ impl<D> Parse<D> for i8
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
@@ -225,7 +225,7 @@ impl<D> Parse<D> for u16
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
@@ -240,7 +240,7 @@ impl<D> Parse<D> for i16
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
@@ -255,7 +255,7 @@ impl<D> Parse<D> for u32
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
@@ -270,7 +270,7 @@ impl<D> Parse<D> for i32
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
@@ -285,7 +285,7 @@ impl<D> Parse<D> for u64
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
@@ -300,7 +300,7 @@ impl<D> Parse<D> for i64
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
@@ -315,7 +315,7 @@ impl<D> Parse<D> for f32
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
@@ -330,7 +330,7 @@ impl<D> Parse<D> for f64
 where
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> Result<Self, ParseError>
+    fn parse<F>(f: &mut F, d: &mut ParseData<D>) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
