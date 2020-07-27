@@ -342,6 +342,56 @@ where
     }
 }
 
+#[macro_export]
+macro_rules! impl_parse_field {
+    ($name:ident : l : $typ:ty; $input:expr) => {
+        let $name = <$typ>::parse(
+            $input,
+            &mut $crate::parse::ParseData::clear($crate::Endian::Little),
+        )?;
+    };
+    ($name:ident : b : $typ:ty; $input:expr) => {
+        let $name = <$typ>::parse(
+            $input,
+            &mut $crate::parse::ParseData::clear($crate::Endian::Big),
+        )?;
+    };
+    ($name:ident : u : $typ:ty; $input:expr) => {
+        let $name = <$typ>::parse(
+            $input,
+            &mut $crate::parse::ParseData::clear($crate::Endian::Big),
+        )?;
+    };
+}
+
+#[macro_export]
+macro_rules! impl_parse {
+    ($on:ty, [$($name:ident : $e:ident : $typ:ty),*]) => {
+        impl $crate::parse::Parse<()> for $on {
+            fn parse<F>(f: &mut F, _d: &mut $crate::parse::ParseData<()>) -> $crate::parse::ParseResult<Self>
+            where
+                F: std::io::Seek + std::io::Read {
+                $(
+                    $crate::impl_parse_field!($name : $e : $typ; f);
+                )*
+                Ok(Self {
+                    $($name),*
+                })
+            }
+        }
+    };
+    (newtype $on:ty, $name:ident : $e:ident : $typ:ty) => {
+        impl $crate::parse::Parse<()> for $on {
+            fn parse<F>(f: &mut F, _d: &mut $crate::parse::ParseData<()>) -> $crate::parse::ParseResult<Self>
+            where
+                F: std::io::Seek + std::io::Read {
+                $crate::impl_parse_field!($name: $e : $typ; f);
+                Ok(Self($name))
+            }
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
