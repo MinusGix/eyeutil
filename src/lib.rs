@@ -36,6 +36,36 @@ where
     Ok(len)
 }
 
+// TODO: should this have a sub-module?
+/// implements function that returns if that bit is set:
+/// `impl_flags!(LinkFlags, flags, [thing1 : 0b1, thing2: 0b10]);`
+/// implements function that shift-lefts (1 << n) then returns if that bit set:
+/// `impl_flags(shl, LinkFlags, flags, [thing1: 0, thing2: 1]);`
+#[macro_export]
+macro_rules! impl_flags {
+    ($strct:ty, $field:ident, [$($(#[$outer:meta])* $name:ident : $bits:expr),*]) => {
+        impl $strct {
+            $(
+                $(#[$outer])*
+                pub fn $name(&self) -> bool {
+                    (self.$field & $bits) != 0
+                }
+            )*
+        }
+    };
+
+    (shl $strct:ty, $field:ident, [$($(#[$outer:meta])* $name:ident : $l:expr),*]) => {
+        impl $strct {
+            $(
+                $(#[$outer])*
+                pub fn $name(&self) -> bool {
+                    (self.$field & (1 << $l)) != 0
+                }
+            )*
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
