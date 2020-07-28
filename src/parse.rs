@@ -296,23 +296,14 @@ impl Parse<Endian> for f64 {
 #[macro_export]
 macro_rules! impl_parse_field {
     ($name:ident : l : $typ:ty; $input:expr) => {
-        let $name = <$typ>::parse(
-            $input,
-            &mut $crate::parse::ParseData::from_empty($crate::Endian::Little),
-        )?;
+        let $name = <$typ>::parse($input, Endian::Little)?;
     };
     ($name:ident : b : $typ:ty; $input:expr) => {
-        let $name = <$typ>::parse(
-            $input,
-            &mut $crate::parse::ParseData::from_empty($crate::Endian::Big),
-        )?;
+        let $name = <$typ>::parse($input, Endian::Big)?;
     };
+    // No data
     ($name:ident : u : $typ:ty; $input:expr) => {
-        // FIXME: what, why is it using Big endian rather than the default data?
-        let $name = <$typ>::parse(
-            $input,
-            &mut $crate::parse::ParseData::empty($crate::Endian::Big),
-        )?;
+        let $name = <$typ>::parse($input, ())?;
     };
 }
 
