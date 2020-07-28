@@ -19,9 +19,13 @@ where
     pub fn from_endian(endian: Endian, data: D) -> Self {
         Self { endian, data }
     }
+
+    pub fn clear(&self) -> ParseData<()> {
+        ParseData::from_empty(self.endian)
+    }
 }
 impl ParseData<()> {
-    pub const fn clear(endian: Endian) -> ParseData<()> {
+    pub const fn from_empty(endian: Endian) -> ParseData<()> {
         Self { endian, data: () }
     }
 }
@@ -368,7 +372,7 @@ mod tests {
         0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10, 0x11,
         0x12, 0x13, 0x14,
     ];
-    const PDATA: ParseData<()> = ParseData::clear(Endian::Little);
+    const PDATA: ParseData<()> = ParseData::from_empty(Endian::Little);
 
     #[test]
     fn test_single() {

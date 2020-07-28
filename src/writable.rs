@@ -28,9 +28,13 @@ where
     pub fn from_endian(endian: Endian, data: D) -> Self {
         Self { endian, data }
     }
+
+    pub fn clear(&self) -> WriteData<()> {
+        WriteData::from_empty(self.endian)
+    }
 }
 impl WriteData<()> {
-    pub fn clear(endian: Endian) -> Self {
+    pub fn from_empty(endian: Endian) -> Self {
         Self { endian, data: () }
     }
 }
