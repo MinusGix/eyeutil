@@ -5,6 +5,12 @@ pub mod parse;
 pub mod slice;
 pub mod writable;
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum EnumConversionError<V> {
+    /// Invalid value.
+    InvalidEnumerationValue(V),
+}
+
 // TODO: once const generics come around, we can use this as a template parameter instead?
 // Similar to byteorder
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]

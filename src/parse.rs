@@ -1,4 +1,4 @@
-use crate::{stream_len, stream_position, Endian};
+use crate::{stream_len, stream_position, Endian, EnumConversionError};
 use std::{
     fmt::Debug,
     io::{Read, Seek},
@@ -51,6 +51,13 @@ pub enum ParseError {
 impl From<std::io::Error> for ParseError {
     fn from(v: std::io::Error) -> Self {
         Self::Io(v)
+    }
+}
+impl<V> From<EnumConversionError<V>> for ParseError {
+    fn from(e: EnumConversionError<V>) -> Self {
+        match e {
+            EnumConversionError::InvalidEnumerationValue(_) => ParseError::InvalidEnumerationValue,
+        }
     }
 }
 
