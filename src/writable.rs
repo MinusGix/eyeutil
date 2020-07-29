@@ -24,27 +24,21 @@ where
         W: Write;
 }
 
-impl Writable<Endian> for u8 {
-    fn write_to<W>(&self, w: &mut W, endian: Endian) -> WriteResult
+impl Writable<()> for u8 {
+    fn write_to<W>(&self, w: &mut W, _d: ()) -> WriteResult
     where
         W: Write,
     {
-        w.write_all(&match endian {
-            Endian::Big => self.to_be_bytes(),
-            Endian::Little => self.to_le_bytes(),
-        })?;
+        w.write_all(&self.to_le_bytes())?;
         Ok(())
     }
 }
-impl Writable<Endian> for i8 {
-    fn write_to<W>(&self, w: &mut W, endian: Endian) -> WriteResult
+impl Writable<()> for i8 {
+    fn write_to<W>(&self, w: &mut W, _d: ()) -> WriteResult
     where
         W: Write,
     {
-        w.write_all(&match endian {
-            Endian::Big => self.to_be_bytes(),
-            Endian::Little => self.to_le_bytes(),
-        })?;
+        w.write_all(&self.to_le_bytes())?;
         Ok(())
     }
 }
