@@ -60,6 +60,34 @@ where
     Ok(output)
 }
 
+/// Takes all bytes until (and including the terminator).
+/// If [include_terminator] is true, then the terminator is included in the output.
+/// Otherwise, the terminator is not included. (but still consumed!)
+pub fn take_until<F>(f: &mut F, terminator: u8, include_terminator: bool) -> ParseResult<Vec<u8>>
+where
+    F: Read + Seek,
+{
+    // FIXME: for some reason BString does not have a new function.
+    let mut result = Vec::new();
+    loop {
+        let mut buffer = [0u8; 1];
+        // If this errors before we find the null-terminator, then it's.. an error.
+        // Ex: If it gets an EOF error, then it should have given us more bytes.
+        f.read_exact(&mut buffer)?;
+        let value = buffer[0];
+        if value == terminator {
+            if include_terminator {
+                result.push(value);
+            }
+            break;
+        }
+
+        result.push(value);
+    }
+
+    Ok(result)
+}
+
 /// This loops until it has consumed everything, or reached an error
 /// Note that this does not rollback when it encounters an error
 /// and should be used when you know that what you're reading from is
@@ -393,5 +421,17 @@ mod tests {
             Ok([data[0], data[1], data[2]])
         })
         .expect_err("Expected failure in dividing DATA into 3-byte chunks");
+    }
+
+    #[test]
+    fn test_take_until() {
+        let mut cursor = Cursor::new(&DATA);
+        let result = take_until(&mut cursor, 0x7, false).unwrap();
+        assert_eq!(result.as_slice(), &[0x1, 0x2, 0x3, 0x4, 0x5, 0x6]);
+        assert_eq!(stream_position(&mut cursor).unwrap(), 7);
+        let result = take_until(&mut cursor, 0xa, true).unwrap();
+        // Note: cursor has been moved by previous.
+        assert_eq!(result.as_slice(), &[0x8, 0x9, 0xa]);
+        assert_eq!(stream_position(&mut cursor).unwrap(), 10);
     }
 }
