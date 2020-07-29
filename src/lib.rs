@@ -4,6 +4,7 @@ pub mod data_size;
 pub mod parse;
 pub mod slice;
 pub mod writable;
+pub mod zstring;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum EnumConversionError<V> {
