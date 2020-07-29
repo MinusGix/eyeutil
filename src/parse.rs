@@ -30,7 +30,7 @@ impl From<std::io::Error> for ParseError {
 impl<V> From<EnumConversionError<V>> for ParseError {
     fn from(e: EnumConversionError<V>) -> Self {
         match e {
-            EnumConversionError::InvalidEnumerationValue(_) => ParseError::InvalidEnumerationValue,
+            EnumConversionError::InvalidValue(_) => ParseError::InvalidEnumerationValue,
         }
     }
 }

@@ -8,7 +8,7 @@ pub mod writable;
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum EnumConversionError<V> {
     /// Invalid value.
-    InvalidEnumerationValue(V),
+    InvalidValue(V),
 }
 
 // TODO: once const generics come around, we can use this as a template parameter instead?
