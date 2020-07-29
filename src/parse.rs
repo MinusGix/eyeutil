@@ -170,29 +170,21 @@ where
         F: std::io::Read + std::io::Seek;
 }
 
-impl Parse<Endian> for u8 {
-    fn parse<F>(f: &mut F, endian: Endian) -> ParseResult<Self>
+impl Parse<()> for u8 {
+    fn parse<F>(f: &mut F, _d: ()) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
-        let data = single(f)?;
-        Ok(match endian {
-            Endian::Big => u8::from_be_bytes([data]),
-            Endian::Little => u8::from_le_bytes([data]),
-        })
+        Ok(u8::from_le_bytes([single(f)?]))
     }
 }
 
-impl Parse<Endian> for i8 {
-    fn parse<F>(f: &mut F, endian: Endian) -> ParseResult<Self>
+impl Parse<()> for i8 {
+    fn parse<F>(f: &mut F, _d: ()) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek,
     {
-        let data = single(f)?;
-        Ok(match endian {
-            Endian::Big => i8::from_be_bytes([data]),
-            Endian::Little => i8::from_le_bytes([data]),
-        })
+        Ok(i8::from_le_bytes([single(f)?]))
     }
 }
 impl Parse<Endian> for u16 {
