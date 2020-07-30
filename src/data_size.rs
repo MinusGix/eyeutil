@@ -1,18 +1,11 @@
 use std::fmt::Debug;
 
-pub struct DataSizeData<D>
-where
-    D: Debug + Clone + PartialEq,
-{
-    pub data: D,
-}
-
 pub trait DataSize<D>
 where
     D: Debug + Clone + PartialEq,
 {
     /// Returns data size in bytes
-    fn data_size(&self, d: &mut DataSizeData<D>) -> u64;
+    fn data_size(&self, d: D) -> u64;
 }
 
 // TODO: I would really like to have a StaticDataSize trait for types which don't need
@@ -34,11 +27,8 @@ where
 #[macro_export]
 macro_rules! impl_data_size {
     ($typ:ty, $value:expr) => {
-        impl<D> $crate::data_size::DataSize<D> for $typ
-        where
-            D: std::fmt::Debug + Clone + PartialEq,
-        {
-            fn data_size(&self, _d: &mut DataSizeData<D>) -> u64 {
+        impl $crate::data_size::DataSize<()> for $typ {
+            fn data_size(&self, _d: ()) -> u64 {
                 $value
             }
         }
@@ -63,8 +53,9 @@ where
     D: Debug + Clone + PartialEq,
     T: DataSize<D>,
 {
-    fn data_size(&self, d: &mut DataSizeData<D>) -> u64 {
-        self.iter().fold(0u64, |acc, x| acc + x.data_size(d))
+    fn data_size(&self, d: D) -> u64 {
+        self.iter()
+            .fold(0u64, |acc, x| acc + x.data_size(d.clone()))
     }
 }
 impl<D, T> DataSize<D> for Vec<T>
@@ -72,7 +63,7 @@ where
     D: Debug + Clone + PartialEq,
     T: DataSize<D>,
 {
-    fn data_size(&self, d: &mut DataSizeData<D>) -> u64 {
+    fn data_size(&self, d: D) -> u64 {
         self.as_slice().data_size(d)
     }
 }
