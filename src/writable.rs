@@ -6,6 +6,13 @@ pub type WriteResult = Result<(), WriteError>;
 #[derive(Debug)]
 pub enum WriteError {
     Io(std::io::Error),
+    /// The amount of data within exceeds limits.
+    /// If this is something that should never happen, it may be a better
+    /// idea to panic in your code?
+    ExcessiveData,
+    /// The amount of data exceeds the amount that can be fit within whatever bitness the integer
+    /// that tracks the size can contain.
+    TooManyBits,
 }
 impl From<std::io::Error> for WriteError {
     fn from(v: std::io::Error) -> Self {
