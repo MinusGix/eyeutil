@@ -1,7 +1,7 @@
 use crate::{stream_len, stream_position, Endian, EnumConversionError};
 use std::{
     fmt::Debug,
-    io::{Read, Seek},
+    io::{Read, Seek, SeekFrom},
 };
 
 #[derive(Debug)]
@@ -46,6 +46,7 @@ where
     Ok(output[0])
 }
 
+// TODO: take_peek
 // TODO: const generics version that takes in the size as a template param
 //  and returns an array of that size
 pub fn take<F>(f: &mut F, amount: usize) -> ParseResult<Vec<u8>>
@@ -60,6 +61,7 @@ where
     Ok(output)
 }
 
+// TODO: take_until_peek
 /// Takes all bytes until (and including the terminator).
 /// If [include_terminator] is true, then the terminator is included in the output.
 /// Otherwise, the terminator is not included. (but still consumed!)
@@ -88,6 +90,7 @@ where
     Ok(result)
 }
 
+// TODO: many_peek
 /// This loops until it has consumed everything, or reached an error
 /// Note that this does not rollback when it encounters an error
 /// and should be used when you know that what you're reading from is
@@ -118,6 +121,7 @@ where
     Ok(result)
 }
 
+// TODO: many_parse_peek
 pub fn many_parse<F, P, D>(f: &mut F, d: D) -> ParseResult<Vec<P>>
 where
     F: Read + Seek,
@@ -142,6 +146,7 @@ where
     Ok(result)
 }
 
+// TODO: tag_peek
 /// Expect certain bytes. Does not return them.
 pub fn tag<F, X>(f: &mut F, data: &[X]) -> ParseResult<()>
 where
@@ -196,6 +201,25 @@ where
     fn parse<F>(f: &mut F, d: D) -> ParseResult<Self>
     where
         F: std::io::Read + std::io::Seek;
+
+    // TODO: would it be nice to diffrentiate between seek errors and parsing errors?
+    // It's not *too* much of a gain, but it is more correct.
+    /// Parse the data, then move back to the initial position. Useful for peeking ahead.
+    /// Note: this function only works if [stream_position] works upon the type.
+    /// If the state is modified by seeking it back and forth, then this has side effects.
+    /// This works fine much of the time.
+    /// If there is an error originating from the seeks, then the file position is undefined.
+    /// If there is an error from parsing the data, it should be back to where it was previously.
+    fn parse_peek<F>(f: &mut F, d: D) -> ParseResult<Self>
+    where
+        F: std::io::Read + std::io::Seek {
+        // Store the starting position
+        let initial_position = stream_position(f)?;
+        let data = Self::parse(f, d);
+        // First we seek back to our starting position, before dealing with the data
+        f.seek(SeekFrom::Start(initial_position))?;
+        data
+    }
 }
 
 impl Parse<()> for u8 {
@@ -433,5 +457,13 @@ mod tests {
         // Note: cursor has been moved by previous.
         assert_eq!(result.as_slice(), &[0x8, 0x9, 0xa]);
         assert_eq!(stream_position(&mut cursor).unwrap(), 10);
+    }
+
+    #[test]
+    fn test_parse_peek() {
+        let mut cursor = Cursor::new(&DATA);
+        let value = u16::parse_peek(&mut cursor, Endian::Big).unwrap();
+        assert_eq!(value, 0x0102);
+        assert_eq!(stream_position(&mut cursor).unwrap(), 0);
     }
 }
