@@ -1,5 +1,6 @@
 use crate::{stream_len, stream_position, Endian, EnumConversionError};
 use std::{
+    convert::TryInto,
     fmt::Debug,
     io::{Read, Seek, SeekFrom},
 };
@@ -212,7 +213,8 @@ where
     /// If there is an error from parsing the data, it should be back to where it was previously.
     fn parse_peek<F>(f: &mut F, d: D) -> ParseResult<Self>
     where
-        F: std::io::Read + std::io::Seek {
+        F: std::io::Read + std::io::Seek,
+    {
         // Store the starting position
         let initial_position = stream_position(f)?;
         let data = Self::parse(f, d);
@@ -333,6 +335,21 @@ impl Parse<Endian> for f64 {
             Endian::Big => f64::from_be_bytes(data),
             Endian::Little => f64::from_le_bytes(data),
         })
+    }
+}
+
+impl<D: Debug + Clone + PartialEq, T: Parse<D>, const N: usize> Parse<D> for [T; N] {
+    fn parse<F>(f: &mut F, d: D) -> ParseResult<Self>
+    where
+        F: std::io::Read + std::io::Seek,
+    {
+        // TODO: This might be able to be optimized out, but I don't want to rely on that.
+        let mut data: Vec<T> = Vec::with_capacity(N);
+        for _ in 0..N {
+            data.push(T::parse(f, d.clone())?);
+        }
+
+        Ok(data.try_into().unwrap_or_else(|_| unreachable!()))
     }
 }
 
