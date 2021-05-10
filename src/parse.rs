@@ -110,7 +110,7 @@ where
     F: Read + Seek,
     C: Fn(&mut F, D) -> Result<R, E>,
     E: Into<ParseError>,
-    D: Debug + Clone + PartialEq,
+    D: Clone,
 {
     let mut result: Vec<R> = Vec::new();
     let stream_len = stream_len(f)?;
@@ -136,7 +136,7 @@ pub fn many_parse<F, P, D>(f: &mut F, d: D) -> ParseResult<Vec<P>>
 where
     F: Read + Seek,
     P: Parse<F, D>,
-    D: Debug + Clone + PartialEq,
+    D: Clone,
 {
     let mut result = Vec::new();
     let stream_len = stream_len(f)?;
@@ -207,7 +207,7 @@ where
 pub trait Parse<F, D = ()>: Sized
 where
     F: Read,
-    D: Debug + Clone + PartialEq,
+    D: Clone,
 {
     fn parse(f: &mut F, d: D) -> ParseResult<Self>;
 
@@ -316,7 +316,7 @@ impl<F: Read> Parse<F, Endian> for f64 {
     }
 }
 
-impl<D: Debug + Clone + PartialEq, F: Read, T: Parse<F, D>, const N: usize> Parse<F, D> for [T; N] {
+impl<D: Clone, F: Read, T: Parse<F, D>, const N: usize> Parse<F, D> for [T; N] {
     fn parse(f: &mut F, d: D) -> ParseResult<Self> {
         // TODO: This might be able to be optimized out, but I don't want to rely on that.
         let mut data: Vec<T> = Vec::with_capacity(N);
