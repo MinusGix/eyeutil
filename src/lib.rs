@@ -1,4 +1,4 @@
-use std::io::{Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 
 pub mod data_size;
 pub mod parse;
@@ -73,6 +73,26 @@ macro_rules! impl_flags {
     };
 }
 
+/// Skip `amount` bytes. This is for when you don't implement seek.
+/// TODO: This is really shoddy, and specialization would make this way better.
+pub fn skip<F: Read, const CHUNK: usize>(mut f: F, mut amount: usize) -> std::io::Result<()> {
+    let mut buf = [0_u8; CHUNK];
+
+    loop {
+        if amount == 0 {
+            break;
+        }
+
+        let end = CHUNK.min(amount);
+        let buf_slice: &mut [u8] = &mut buf[..end];
+        f.read_exact(buf_slice)?;
+
+        amount = amount.saturating_sub(CHUNK);
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -102,5 +122,16 @@ mod tests {
         let mut out = [0u8; 4];
         cursor.read_exact(&mut out).unwrap();
         assert_eq!(stream_len(&mut cursor).unwrap(), DATA.len() as u64);
+    }
+
+    #[test]
+    pub fn test_skip() {
+        let mut cursor = std::io::Cursor::new(&DATA as &[u8]);
+        skip::<_, 16>(&mut cursor, 1).unwrap();
+        assert_eq!(cursor.position(), 1);
+        skip::<_, 16>(&mut cursor, 1).unwrap();
+        assert_eq!(cursor.position(), 2);
+        skip::<_, 16>(&mut cursor, 4).unwrap();
+        assert_eq!(cursor.position(), 6);
     }
 }
