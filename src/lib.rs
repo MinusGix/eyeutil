@@ -20,6 +20,7 @@ pub enum Endian {
     Big,
 }
 
+#[inline]
 pub fn stream_position<F>(f: &mut F) -> std::io::Result<u64>
 where
     F: Seek,
@@ -28,6 +29,7 @@ where
 }
 
 // TODO: once `Seek::stream_len` is stabilized, replace this with it.
+#[inline]
 pub fn stream_len<F>(f: &mut F) -> std::io::Result<u64>
 where
     F: Seek,
