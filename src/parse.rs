@@ -1,6 +1,7 @@
 use crate::{stream_len, stream_position, Endian, EnumConversionError};
 use std::{
     convert::TryInto,
+    error::Error,
     fmt::Debug,
     io::{Read, Seek, SeekFrom},
 };
@@ -22,6 +23,7 @@ pub enum ParseError {
     InvalidEnumerationValueNamed(&'static str),
     /// It read a byte that was invalid.
     InvalidByte,
+    Custom(Box<dyn Error>),
 }
 impl From<std::io::Error> for ParseError {
     fn from(v: std::io::Error) -> Self {
