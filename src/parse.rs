@@ -40,7 +40,7 @@ pub type ParseResult<R, E = ParseError> = Result<R, E>;
 
 pub fn single<F>(f: &mut F) -> ParseResult<u8>
 where
-    F: Read + Seek,
+    F: Read,
 {
     let mut output = [0u8];
     f.read_exact(&mut output)?;
@@ -52,7 +52,7 @@ where
 //  and returns an array of that size
 pub fn take<F>(f: &mut F, amount: usize) -> ParseResult<Vec<u8>>
 where
-    F: Read + Seek,
+    F: Read,
 {
     let mut output = Vec::new();
     output.resize(amount, 0);
@@ -68,7 +68,7 @@ where
 /// Otherwise, the terminator is not included. (but still consumed!)
 pub fn take_until<F>(f: &mut F, terminator: u8, include_terminator: bool) -> ParseResult<Vec<u8>>
 where
-    F: Read + Seek,
+    F: Read,
 {
     // FIXME: for some reason BString does not have a new function.
     let mut result = Vec::new();
@@ -126,7 +126,7 @@ where
 pub fn many_parse<F, P, D>(f: &mut F, d: D) -> ParseResult<Vec<P>>
 where
     F: Read + Seek,
-    P: Parse<D>,
+    P: Parse<F, D>,
     D: Debug + Clone + PartialEq,
 {
     let mut result = Vec::new();
@@ -151,7 +151,7 @@ where
 /// Expect certain bytes. Does not return them.
 pub fn tag<F, X>(f: &mut F, data: &[X]) -> ParseResult<()>
 where
-    F: Read + Seek,
+    F: Read,
     X: PartialEq<u8>,
 {
     for x in data.iter() {
@@ -166,7 +166,7 @@ where
 // Internal utilities, since const generics don't exist
 fn take_2<F>(f: &mut F) -> ParseResult<[u8; 2]>
 where
-    F: Read + Seek,
+    F: Read,
 {
     let mut output = [0u8; 2];
     f.read_exact(&mut output)?;
@@ -175,7 +175,7 @@ where
 
 fn take_4<F>(f: &mut F) -> ParseResult<[u8; 4]>
 where
-    F: Read + Seek,
+    F: Read,
 {
     let mut output = [0u8; 4];
     f.read_exact(&mut output)?;
@@ -184,7 +184,7 @@ where
 
 fn take_8<F>(f: &mut F) -> ParseResult<[u8; 8]>
 where
-    F: Read + Seek,
+    F: Read,
 {
     let mut output = [0u8; 8];
     f.read_exact(&mut output)?;
@@ -195,13 +195,12 @@ where
 // TODO: It would be nice to allow non-Seek types. At the very least, forward seek can be
 //   ''implemented'' by reading data and throwing it away.
 //     Most parsing probably doesn't need arbitrarty seeking.
-pub trait Parse<D>: Sized
+pub trait Parse<F, D = ()>: Sized
 where
+    F: Read,
     D: Debug + Clone + PartialEq,
 {
-    fn parse<F>(f: &mut F, d: D) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek;
+    fn parse(f: &mut F, d: D) -> ParseResult<Self>;
 
     // TODO: would it be nice to diffrentiate between seek errors and parsing errors?
     // It's not *too* much of a gain, but it is more correct.
@@ -211,9 +210,9 @@ where
     /// This works fine much of the time.
     /// If there is an error originating from the seeks, then the file position is undefined.
     /// If there is an error from parsing the data, it should be back to where it was previously.
-    fn parse_peek<F>(f: &mut F, d: D) -> ParseResult<Self>
+    fn parse_peek(f: &mut F, d: D) -> ParseResult<Self>
     where
-        F: std::io::Read + std::io::Seek,
+        F: Seek,
     {
         // Store the starting position
         let initial_position = stream_position(f)?;
@@ -224,28 +223,19 @@ where
     }
 }
 
-impl Parse<()> for u8 {
-    fn parse<F>(f: &mut F, _d: ()) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read> Parse<F> for u8 {
+    fn parse(f: &mut F, _d: ()) -> ParseResult<Self> {
         Ok(u8::from_le_bytes([single(f)?]))
     }
 }
 
-impl Parse<()> for i8 {
-    fn parse<F>(f: &mut F, _d: ()) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read> Parse<F> for i8 {
+    fn parse(f: &mut F, _d: ()) -> ParseResult<Self> {
         Ok(i8::from_le_bytes([single(f)?]))
     }
 }
-impl Parse<Endian> for u16 {
-    fn parse<F>(f: &mut F, endian: Endian) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read> Parse<F, Endian> for u16 {
+    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_2(f)?;
         Ok(match endian {
             Endian::Big => u16::from_be_bytes(data),
@@ -253,11 +243,8 @@ impl Parse<Endian> for u16 {
         })
     }
 }
-impl Parse<Endian> for i16 {
-    fn parse<F>(f: &mut F, endian: Endian) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read> Parse<F, Endian> for i16 {
+    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_2(f)?;
         Ok(match endian {
             Endian::Big => i16::from_be_bytes(data),
@@ -265,11 +252,8 @@ impl Parse<Endian> for i16 {
         })
     }
 }
-impl Parse<Endian> for u32 {
-    fn parse<F>(f: &mut F, endian: Endian) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read> Parse<F, Endian> for u32 {
+    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_4(f)?;
         Ok(match endian {
             Endian::Big => u32::from_be_bytes(data),
@@ -277,11 +261,8 @@ impl Parse<Endian> for u32 {
         })
     }
 }
-impl Parse<Endian> for i32 {
-    fn parse<F>(f: &mut F, endian: Endian) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read> Parse<F, Endian> for i32 {
+    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_4(f)?;
         Ok(match endian {
             Endian::Big => i32::from_be_bytes(data),
@@ -289,11 +270,8 @@ impl Parse<Endian> for i32 {
         })
     }
 }
-impl Parse<Endian> for u64 {
-    fn parse<F>(f: &mut F, endian: Endian) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read> Parse<F, Endian> for u64 {
+    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_8(f)?;
         Ok(match endian {
             Endian::Big => u64::from_be_bytes(data),
@@ -301,11 +279,8 @@ impl Parse<Endian> for u64 {
         })
     }
 }
-impl Parse<Endian> for i64 {
-    fn parse<F>(f: &mut F, endian: Endian) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read> Parse<F, Endian> for i64 {
+    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_8(f)?;
         Ok(match endian {
             Endian::Big => i64::from_be_bytes(data),
@@ -313,11 +288,8 @@ impl Parse<Endian> for i64 {
         })
     }
 }
-impl Parse<Endian> for f32 {
-    fn parse<F>(f: &mut F, endian: Endian) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read> Parse<F, Endian> for f32 {
+    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_4(f)?;
         Ok(match endian {
             Endian::Big => f32::from_be_bytes(data),
@@ -325,11 +297,8 @@ impl Parse<Endian> for f32 {
         })
     }
 }
-impl Parse<Endian> for f64 {
-    fn parse<F>(f: &mut F, endian: Endian) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read> Parse<F, Endian> for f64 {
+    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_8(f)?;
         Ok(match endian {
             Endian::Big => f64::from_be_bytes(data),
@@ -338,11 +307,8 @@ impl Parse<Endian> for f64 {
     }
 }
 
-impl<D: Debug + Clone + PartialEq, T: Parse<D>, const N: usize> Parse<D> for [T; N] {
-    fn parse<F>(f: &mut F, d: D) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<D: Debug + Clone + PartialEq, F: Read, T: Parse<F, D>, const N: usize> Parse<F, D> for [T; N] {
+    fn parse(f: &mut F, d: D) -> ParseResult<Self> {
         // TODO: This might be able to be optimized out, but I don't want to rely on that.
         let mut data: Vec<T> = Vec::with_capacity(N);
         for _ in 0..N {
@@ -372,7 +338,7 @@ macro_rules! impl_parse_field {
 macro_rules! impl_parse {
     ($on:ty, [$($name:ident : $e:ident : $typ:ty),*]) => {
         impl $crate::parse::Parse<()> for $on {
-            fn parse<F>(f: &mut F, _d: ()) -> $crate::parse::ParseResult<Self>
+            fn parse(f: &mut F, _d: ()) -> $crate::parse::ParseResult<Self>
             where
                 F: std::io::Seek + std::io::Read {
                 $(
@@ -386,7 +352,7 @@ macro_rules! impl_parse {
     };
     (newtype $on:ty, $name:ident : $e:ident : $typ:ty) => {
         impl $crate::parse::Parse<()> for $on {
-            fn parse<F>(f: &mut F, _d: ()) -> $crate::parse::ParseResult<Self>
+            fn parse(f: &mut F, _d: ()) -> $crate::parse::ParseResult<Self>
             where
                 F: std::io::Seek + std::io::Read {
                 $crate::impl_parse_field!($name: $e : $typ; f);

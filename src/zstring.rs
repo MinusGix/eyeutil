@@ -3,7 +3,7 @@ use crate::{
     writable::{Writable, WriteResult},
 };
 use bstr::BString;
-use std::io::Write;
+use std::io::{Read, Seek, Write};
 
 /// Simple (ascii-ish, but more a byte-string) Null-terminated string.
 /// Is not meant to work on unicode.
@@ -44,11 +44,8 @@ impl ZString {
         self.0.as_mut_slice()
     }
 }
-impl Parse<()> for ZString {
-    fn parse<F>(f: &mut F, _d: ()) -> ParseResult<Self>
-    where
-        F: std::io::Read + std::io::Seek,
-    {
+impl<F: Read + Seek> Parse<F> for ZString {
+    fn parse(f: &mut F, _d: ()) -> ParseResult<Self> {
         let data = take_until(f, ZString::TERMINATOR, false)?;
 
         Ok(ZString::new(data))
