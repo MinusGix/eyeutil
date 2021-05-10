@@ -64,6 +64,13 @@ where
     Ok(output)
 }
 
+/// More efficient than parsing [u8; N]
+pub fn take_n<F: Read, const N: usize>(f: &mut F) -> ParseResult<[u8; N]> {
+    let mut output = [0_u8; N];
+    f.read_exact(&mut output)?;
+    Ok(output)
+}
+
 // TODO: take_until_peek
 /// Takes all bytes until (and including the terminator).
 /// If [include_terminator] is true, then the terminator is included in the output.
