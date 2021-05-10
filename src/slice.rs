@@ -18,6 +18,7 @@ where
     /// Panics if the input is unsound, by getting current position
     /// and checking if it is within [range].
     /// Does not modify current position.
+    #[inline]
     pub fn new<R>(mut input: F, range: R) -> std::io::Result<Self>
     where
         R: RangeBounds<u64>,
@@ -31,6 +32,7 @@ where
     /// Unlike `InputSlice::new` this does not check if the [input] is sound.
     /// # Soundness: Requires
     ///  `range.start() <= input.seek(SeekFrom::Current(0)) <= range.end()`
+    #[inline]
     pub fn new_unchecked<R>(input: F, range: R) -> Self
     where
         R: RangeBounds<u64>,
@@ -53,6 +55,7 @@ where
     /// uses stream_len
     /// to get the current position.
     /// Note: `[current position] + amount` performs saturating addition
+    #[inline]
     pub fn at(mut input: F, amount: u64) -> std::io::Result<Self> {
         let start = input.seek(SeekFrom::Current(0))?;
         let end = start.saturating_add(amount);
@@ -60,37 +63,45 @@ where
     }
 
     /// Returns inclusive start
+    #[inline]
     pub fn start(&self) -> u64 {
         *self.range.start()
     }
 
     /// Returns inclusive end
+    #[inline]
     pub fn last(&self) -> u64 {
         *self.range.end()
     }
 
     /// Returns exclusive end
+    #[inline]
     pub fn end(&self) -> u64 {
         *self.range.end() + 1
     }
 
+    #[inline]
     pub fn contains(&self, position: u64) -> bool {
         self.range.contains(&position)
     }
 
+    #[inline]
     pub fn range(&self) -> &RangeInclusive<u64> {
         &self.range
     }
 
+    #[inline]
     pub fn into_inner(self) -> F {
         self.input
     }
 
+    #[inline]
     pub fn get_ref(&self) -> &F {
         &self.input
     }
 
     /// Note: one should be careful with this handle, as that might invalidate
+    #[inline]
     pub fn get_mut(&mut self) -> &mut F {
         &mut self.input
     }
@@ -98,10 +109,12 @@ where
     // TODO: Once `Seek::stream_position` is stabilized, use that instead.
     // TODO: don't assume that we can subtract these two values safely
     /// Note: returns the position within this slice, rather than in the containing input as a whole
+    #[inline]
     pub fn stream_position(&mut self) -> std::io::Result<u64> {
         Ok(self.absolute_stream_position()? - self.start())
     }
 
+    #[inline]
     pub fn absolute_stream_position(&mut self) -> std::io::Result<u64> {
         // Have to use it on input otherwise we get infinite-recursion due to `seek` using
         // self.stream_position internally!
@@ -111,6 +124,7 @@ where
     // TODO: use `crate::stream_len`
     // TODO: once `Seek::stream_len` is stabilized, use that instead.
     // We will still need to wrap around the stabilzied function
+    #[inline]
     pub fn stream_len(&mut self) -> std::io::Result<u64> {
         let old_pos = self.stream_position()?;
         let len = self.seek(SeekFrom::Start(self.end()))?;
@@ -126,10 +140,12 @@ where
         Ok(len)
     }
 
+    #[inline]
     pub fn get_distance_from_end(&self, position: u64) -> u64 {
         self.end() - position
     }
 
+    #[inline]
     pub fn position_at_end(&mut self) -> std::io::Result<bool> {
         let position = self.absolute_stream_position()?;
         Ok(position == self.end())
@@ -144,6 +160,7 @@ where
 {
     /// Calls [input]'s Read::read method.
     /// If the
+    #[inline]
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let current_position = self.stream_position()?;
         if self.position_at_end()? {
@@ -167,6 +184,7 @@ where
     F: Read + Seek,
 {
     /// If you seek beyond the end, behavior is to constrain you to `*self.range.end()`
+    #[inline]
     fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
         // Get position and offset
         let (base_pos, offset) = match pos {

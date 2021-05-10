@@ -32,6 +32,7 @@ where
 }
 
 impl Writable<()> for u8 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, _d: ()) -> WriteResult
     where
         W: Write,
@@ -41,6 +42,7 @@ impl Writable<()> for u8 {
     }
 }
 impl Writable<()> for i8 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, _d: ()) -> WriteResult
     where
         W: Write,
@@ -50,6 +52,7 @@ impl Writable<()> for i8 {
     }
 }
 impl Writable<Endian> for u16 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, endian: Endian) -> WriteResult
     where
         W: Write,
@@ -62,6 +65,7 @@ impl Writable<Endian> for u16 {
     }
 }
 impl Writable<Endian> for i16 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, endian: Endian) -> WriteResult
     where
         W: Write,
@@ -74,6 +78,7 @@ impl Writable<Endian> for i16 {
     }
 }
 impl Writable<Endian> for u32 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, endian: Endian) -> WriteResult
     where
         W: Write,
@@ -86,6 +91,7 @@ impl Writable<Endian> for u32 {
     }
 }
 impl Writable<Endian> for i32 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, endian: Endian) -> WriteResult
     where
         W: Write,
@@ -98,6 +104,7 @@ impl Writable<Endian> for i32 {
     }
 }
 impl Writable<Endian> for u64 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, endian: Endian) -> WriteResult
     where
         W: Write,
@@ -110,6 +117,7 @@ impl Writable<Endian> for u64 {
     }
 }
 impl Writable<Endian> for i64 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, endian: Endian) -> WriteResult
     where
         W: Write,
@@ -122,6 +130,7 @@ impl Writable<Endian> for i64 {
     }
 }
 impl Writable<Endian> for f32 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, endian: Endian) -> WriteResult
     where
         W: Write,
@@ -134,6 +143,7 @@ impl Writable<Endian> for f32 {
     }
 }
 impl Writable<Endian> for f64 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, endian: Endian) -> WriteResult
     where
         W: Write,
@@ -151,6 +161,7 @@ where
     D: Debug + Clone + PartialEq,
 {
     /// Note: does not write length for you, that's up to you.
+    #[inline]
     fn write_to<W>(&self, w: &mut W, d: D) -> WriteResult
     where
         W: Write,
@@ -166,6 +177,7 @@ where
     T: Writable<D>,
     D: Debug + Clone + PartialEq,
 {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, d: D) -> WriteResult
     where
         W: Write,

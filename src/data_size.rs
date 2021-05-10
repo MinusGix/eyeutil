@@ -28,6 +28,7 @@ where
 macro_rules! impl_data_size {
     ($typ:ty, $value:expr) => {
         impl $crate::data_size::DataSize<()> for $typ {
+            #[inline]
             fn data_size(&self, _d: ()) -> u64 {
                 $value
             }
@@ -53,6 +54,7 @@ where
     D: Debug + Clone + PartialEq,
     T: DataSize<D>,
 {
+    #[inline]
     fn data_size(&self, d: D) -> u64 {
         self.iter()
             .fold(0u64, |acc, x| acc + x.data_size(d.clone()))
@@ -63,6 +65,7 @@ where
     D: Debug + Clone + PartialEq,
     T: DataSize<D>,
 {
+    #[inline]
     fn data_size(&self, d: D) -> u64 {
         self.as_slice().data_size(d)
     }

@@ -16,6 +16,7 @@ impl ZString {
     /// Note: this is without null-terminator!
     /// This also does _not_ check if this contains nulls, which may confuse things if
     /// you aren't sure!
+    #[inline]
     pub fn new(data: Vec<u8>) -> Self {
         ZString(BString::from(data))
     }
@@ -24,22 +25,26 @@ impl ZString {
 
     /// Returns the number of elements.
     /// Note: Does not include null-terminator.
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
     /// Returns whether there is any values.
     /// Note: does not include null-terminator, otherwise it would always be false.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.len() == 0
     }
 
     /// Note: Does not include null-terminator.
+    #[inline]
     pub fn as_slice(&self) -> &[u8] {
         self.0.as_slice()
     }
 
     /// Note: Does not include null-terminator
+    #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [u8] {
         self.0.as_mut_slice()
     }
@@ -52,6 +57,7 @@ impl<F: Read + Seek> Parse<F> for ZString {
     }
 }
 impl Writable<()> for ZString {
+    #[inline]
     fn write_to<W>(&self, w: &mut W, _d: ()) -> WriteResult
     where
         W: Write,

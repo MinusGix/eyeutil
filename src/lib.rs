@@ -75,6 +75,7 @@ macro_rules! impl_flags {
 
 /// Skip `amount` bytes. This is for when you don't implement seek.
 /// TODO: This is really shoddy, and specialization would make this way better.
+#[inline]
 pub fn skip<F: Read, const CHUNK: usize>(mut f: F, mut amount: usize) -> std::io::Result<()> {
     let mut buf = [0_u8; CHUNK];
 
