@@ -6,13 +6,13 @@ use std::{
 
 /// This was created because Take doesn't support Seek
 #[derive(Debug)]
-pub struct InputSlice<F: Read + Seek> {
+pub struct InputSlice<F: Read> {
     input: F,
     range: RangeInclusive<u64>,
 }
 impl<F> InputSlice<F>
 where
-    F: Read + Seek,
+    F: Read,
 {
     /// Creates `InputSlice` instance withprovided [range] and [range]
     /// Panics if the input is unsound, by getting current position
@@ -22,6 +22,7 @@ where
     pub fn new<R>(mut input: F, range: R) -> std::io::Result<Self>
     where
         R: RangeBounds<u64>,
+        F: Seek,
     {
         let position = input.seek(SeekFrom::Current(0))?;
         assert!(range.contains(&position));
@@ -56,7 +57,10 @@ where
     /// to get the current position.
     /// Note: `[current position] + amount` performs saturating addition
     #[inline]
-    pub fn at(mut input: F, amount: u64) -> std::io::Result<Self> {
+    pub fn at(mut input: F, amount: u64) -> std::io::Result<Self>
+    where
+        F: Seek,
+    {
         let start = input.seek(SeekFrom::Current(0))?;
         let end = start.saturating_add(amount);
         Ok(Self::new_unchecked(input, start..=end))
@@ -110,12 +114,18 @@ where
     // TODO: don't assume that we can subtract these two values safely
     /// Note: returns the position within this slice, rather than in the containing input as a whole
     #[inline]
-    pub fn stream_position(&mut self) -> std::io::Result<u64> {
+    pub fn stream_position(&mut self) -> std::io::Result<u64>
+    where
+        F: Seek,
+    {
         Ok(self.absolute_stream_position()? - self.start())
     }
 
     #[inline]
-    pub fn absolute_stream_position(&mut self) -> std::io::Result<u64> {
+    pub fn absolute_stream_position(&mut self) -> std::io::Result<u64>
+    where
+        F: Seek,
+    {
         // Have to use it on input otherwise we get infinite-recursion due to `seek` using
         // self.stream_position internally!
         stream_position(&mut self.input)
@@ -125,7 +135,10 @@ where
     // TODO: once `Seek::stream_len` is stabilized, use that instead.
     // We will still need to wrap around the stabilzied function
     #[inline]
-    pub fn stream_len(&mut self) -> std::io::Result<u64> {
+    pub fn stream_len(&mut self) -> std::io::Result<u64>
+    where
+        F: Seek,
+    {
         let old_pos = self.stream_position()?;
         let len = self.seek(SeekFrom::Start(self.end()))?;
 
@@ -146,7 +159,10 @@ where
     }
 
     #[inline]
-    pub fn position_at_end(&mut self) -> std::io::Result<bool> {
+    pub fn position_at_end(&mut self) -> std::io::Result<bool>
+    where
+        F: Seek,
+    {
         let position = self.absolute_stream_position()?;
         Ok(position == self.end())
     }
