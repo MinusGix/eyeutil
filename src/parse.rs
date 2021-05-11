@@ -207,7 +207,6 @@ where
 pub trait Parse<F, D = ()>: Sized
 where
     F: Read,
-    D: Clone,
 {
     fn parse(f: &mut F, d: D) -> ParseResult<Self>;
 
