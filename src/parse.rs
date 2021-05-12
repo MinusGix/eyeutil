@@ -132,10 +132,10 @@ where
 }
 
 // TODO: many_parse_peek
-pub fn many_parse<'a, F, P, D>(f: &'a mut F, d: D) -> ParseResult<Vec<P>>
+pub fn many_parse<'a, F, P, D>(f: &'a mut F, d: &mut D) -> ParseResult<Vec<P>>
 where
     F: Read + Seek,
-    P: Parse<'a, F, D>,
+    P: Parse<F, D>,
     D: Clone,
 {
     let mut result = Vec::new();
@@ -147,7 +147,7 @@ where
         }
 
         // TODO: if we're passed a reference, does this clone the reference or the type behind the reference?
-        let value: P = P::parse(f, d.clone())?;
+        let value: P = P::parse(f, d)?;
         result.push(value);
     }
 
@@ -200,50 +200,57 @@ where
     Ok(output)
 }
 
+// TODO: would it be nice to diffrentiate between seek errors and parsing errors?
+// It's not *too* much of a gain, but it is more correct.
+/// Parse the data, then move back to the initial position. Useful for peeking ahead.
+/// Note: this function only works if [stream_position] works upon the type.
+/// If the state is modified by seeking it back and forth, then this has side effects.
+/// This works fine much of the time.
+/// If there is an error originating from the seeks, then the file position is undefined.
+/// If there is an error from parsing the data, it should be back to where it was previously.
+pub fn parse_peek<T: 'static + Parse<F, D>, F: Read + Seek, D>(
+    f: &mut F,
+    d: &mut D,
+) -> ParseResult<T>
+where
+{
+    let initial_position = f.stream_position()?;
+    let data = T::parse(f, d);
+    f.seek(SeekFrom::Start(initial_position))?;
+    data
+}
+
 // TODO: should this take a template for what error it returns.. that would complicate things
 // TODO: It would be nice to allow non-Seek types. At the very least, forward seek can be
 //   ''implemented'' by reading data and throwing it away.
 //     Most parsing probably doesn't need arbitrarty seeking.
-pub trait Parse<'a, F, D = ()>: Sized
+pub trait Parse<F, D = ()>: Sized + 'static
 where
     F: Read,
 {
-    fn parse<'b>(f: &'b mut F, d: D) -> ParseResult<Self>;
+    fn parse<'a>(f: &'a mut F, d: &'a mut D) -> ParseResult<Self>;
 
-    // TODO: would it be nice to diffrentiate between seek errors and parsing errors?
-    // It's not *too* much of a gain, but it is more correct.
-    /// Parse the data, then move back to the initial position. Useful for peeking ahead.
-    /// Note: this function only works if [stream_position] works upon the type.
-    /// If the state is modified by seeking it back and forth, then this has side effects.
-    /// This works fine much of the time.
-    /// If there is an error originating from the seeks, then the file position is undefined.
-    /// If there is an error from parsing the data, it should be back to where it was previously.
-    fn parse_peek(f: &'a mut F, d: D) -> ParseResult<Self>
+    fn parsed(f: &mut F) -> ParseResult<Self>
     where
-        F: Seek,
+        D: Default,
     {
-        // Store the starting position
-        let initial_position = stream_position(f)?;
-        let data = Self::parse(f, d);
-        // First we seek back to our starting position, before dealing with the data
-        f.seek(SeekFrom::Start(initial_position))?;
-        data
+        Self::parse(f, &mut D::default())
     }
 }
 
-impl<F: Read> Parse<'_, F> for u8 {
-    fn parse(f: &mut F, _d: ()) -> ParseResult<Self> {
+impl<F: Read> Parse<F> for u8 {
+    fn parse(f: &mut F, _d: &mut ()) -> ParseResult<Self> {
         Ok(u8::from_le_bytes([single(f)?]))
     }
 }
 
-impl<F: Read> Parse<'_, F> for i8 {
-    fn parse(f: &mut F, _d: ()) -> ParseResult<Self> {
+impl<F: Read> Parse<F> for i8 {
+    fn parse(f: &mut F, _d: &mut ()) -> ParseResult<Self> {
         Ok(i8::from_le_bytes([single(f)?]))
     }
 }
-impl<F: Read> Parse<'_, F, Endian> for u16 {
-    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
+impl<F: Read> Parse<F, Endian> for u16 {
+    fn parse(f: &mut F, endian: &mut Endian) -> ParseResult<Self> {
         let data = take_2(f)?;
         Ok(match endian {
             Endian::Big => u16::from_be_bytes(data),
@@ -251,8 +258,8 @@ impl<F: Read> Parse<'_, F, Endian> for u16 {
         })
     }
 }
-impl<F: Read> Parse<'_, F, Endian> for i16 {
-    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
+impl<F: Read> Parse<F, Endian> for i16 {
+    fn parse(f: &mut F, endian: &mut Endian) -> ParseResult<Self> {
         let data = take_2(f)?;
         Ok(match endian {
             Endian::Big => i16::from_be_bytes(data),
@@ -260,8 +267,8 @@ impl<F: Read> Parse<'_, F, Endian> for i16 {
         })
     }
 }
-impl<F: Read> Parse<'_, F, Endian> for u32 {
-    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
+impl<F: Read> Parse<F, Endian> for u32 {
+    fn parse(f: &mut F, endian: &mut Endian) -> ParseResult<Self> {
         let data = take_4(f)?;
         Ok(match endian {
             Endian::Big => u32::from_be_bytes(data),
@@ -269,8 +276,8 @@ impl<F: Read> Parse<'_, F, Endian> for u32 {
         })
     }
 }
-impl<F: Read> Parse<'_, F, Endian> for i32 {
-    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
+impl<F: Read> Parse<F, Endian> for i32 {
+    fn parse(f: &mut F, endian: &mut Endian) -> ParseResult<Self> {
         let data = take_4(f)?;
         Ok(match endian {
             Endian::Big => i32::from_be_bytes(data),
@@ -278,8 +285,8 @@ impl<F: Read> Parse<'_, F, Endian> for i32 {
         })
     }
 }
-impl<F: Read> Parse<'_, F, Endian> for u64 {
-    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
+impl<F: Read> Parse<F, Endian> for u64 {
+    fn parse(f: &mut F, endian: &mut Endian) -> ParseResult<Self> {
         let data = take_8(f)?;
         Ok(match endian {
             Endian::Big => u64::from_be_bytes(data),
@@ -287,8 +294,8 @@ impl<F: Read> Parse<'_, F, Endian> for u64 {
         })
     }
 }
-impl<F: Read> Parse<'_, F, Endian> for i64 {
-    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
+impl<F: Read> Parse<F, Endian> for i64 {
+    fn parse(f: &mut F, endian: &mut Endian) -> ParseResult<Self> {
         let data = take_8(f)?;
         Ok(match endian {
             Endian::Big => i64::from_be_bytes(data),
@@ -296,8 +303,8 @@ impl<F: Read> Parse<'_, F, Endian> for i64 {
         })
     }
 }
-impl<F: Read> Parse<'_, F, Endian> for f32 {
-    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
+impl<F: Read> Parse<F, Endian> for f32 {
+    fn parse(f: &mut F, endian: &mut Endian) -> ParseResult<Self> {
         let data = take_4(f)?;
         Ok(match endian {
             Endian::Big => f32::from_be_bytes(data),
@@ -305,25 +312,13 @@ impl<F: Read> Parse<'_, F, Endian> for f32 {
         })
     }
 }
-impl<F: Read> Parse<'_, F, Endian> for f64 {
-    fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
+impl<F: Read> Parse<F, Endian> for f64 {
+    fn parse(f: &mut F, endian: &mut Endian) -> ParseResult<Self> {
         let data = take_8(f)?;
         Ok(match endian {
             Endian::Big => f64::from_be_bytes(data),
             Endian::Little => f64::from_le_bytes(data),
         })
-    }
-}
-
-impl<'a, D: Clone, F: Read, T: Parse<'a, F, D>, const N: usize> Parse<'a, F, D> for [T; N] {
-    fn parse<'b>(f: &'b mut F, d: D) -> ParseResult<Self> {
-        // TODO: This might be able to be optimized out, but I don't want to rely on that.
-        let mut data: Vec<T> = Vec::with_capacity(N);
-        for _ in 0..N {
-            data.push(T::parse(f, d.clone())?);
-        }
-
-        Ok(data.try_into().unwrap_or_else(|_| unreachable!()))
     }
 }
 
@@ -345,7 +340,7 @@ macro_rules! impl_parse_field {
 #[macro_export]
 macro_rules! impl_parse {
     ($on:ty, [$($name:ident : $e:ident : $typ:ty),*]) => {
-        impl $crate::parse::Parse<'_, ()> for $on {
+        impl $crate::parse::Parse< ()> for $on {
             fn parse(f: &mut F, _d: ()) -> $crate::parse::ParseResult<Self>
             where
                 F: std::io::Seek + std::io::Read {
@@ -359,7 +354,7 @@ macro_rules! impl_parse {
         }
     };
     (newtype $on:ty, $name:ident : $e:ident : $typ:ty) => {
-        impl $crate::parse::Parse<'_, ()> for $on {
+        impl $crate::parse::Parse< ()> for $on {
             fn parse(f: &mut F, _d: ()) -> $crate::parse::ParseResult<Self>
             where
                 F: std::io::Seek + std::io::Read {
@@ -453,7 +448,7 @@ mod tests {
     #[test]
     fn test_parse_peek() {
         let mut cursor = Cursor::new(&DATA);
-        let value = u16::parse_peek(&mut cursor, Endian::Big).unwrap();
+        let value = parse_peek::<u16, _, _>(&mut cursor, &mut Endian::Big).unwrap();
         assert_eq!(value, 0x0102);
         assert_eq!(stream_position(&mut cursor).unwrap(), 0);
     }
