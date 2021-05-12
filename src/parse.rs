@@ -132,10 +132,10 @@ where
 }
 
 // TODO: many_parse_peek
-pub fn many_parse<F, P, D>(f: &mut F, d: D) -> ParseResult<Vec<P>>
+pub fn many_parse<'a, F, P, D>(f: &'a mut F, d: D) -> ParseResult<Vec<P>>
 where
     F: Read + Seek,
-    P: Parse<F, D>,
+    P: Parse<'a, F, D>,
     D: Clone,
 {
     let mut result = Vec::new();
@@ -204,11 +204,11 @@ where
 // TODO: It would be nice to allow non-Seek types. At the very least, forward seek can be
 //   ''implemented'' by reading data and throwing it away.
 //     Most parsing probably doesn't need arbitrarty seeking.
-pub trait Parse<F, D = ()>: Sized
+pub trait Parse<'a, F, D = ()>: Sized
 where
     F: Read,
 {
-    fn parse(f: &mut F, d: D) -> ParseResult<Self>;
+    fn parse<'b>(f: &'b mut F, d: D) -> ParseResult<Self>;
 
     // TODO: would it be nice to diffrentiate between seek errors and parsing errors?
     // It's not *too* much of a gain, but it is more correct.
@@ -218,7 +218,7 @@ where
     /// This works fine much of the time.
     /// If there is an error originating from the seeks, then the file position is undefined.
     /// If there is an error from parsing the data, it should be back to where it was previously.
-    fn parse_peek(f: &mut F, d: D) -> ParseResult<Self>
+    fn parse_peek(f: &'a mut F, d: D) -> ParseResult<Self>
     where
         F: Seek,
     {
@@ -231,18 +231,18 @@ where
     }
 }
 
-impl<F: Read> Parse<F> for u8 {
+impl<F: Read> Parse<'_, F> for u8 {
     fn parse(f: &mut F, _d: ()) -> ParseResult<Self> {
         Ok(u8::from_le_bytes([single(f)?]))
     }
 }
 
-impl<F: Read> Parse<F> for i8 {
+impl<F: Read> Parse<'_, F> for i8 {
     fn parse(f: &mut F, _d: ()) -> ParseResult<Self> {
         Ok(i8::from_le_bytes([single(f)?]))
     }
 }
-impl<F: Read> Parse<F, Endian> for u16 {
+impl<F: Read> Parse<'_, F, Endian> for u16 {
     fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_2(f)?;
         Ok(match endian {
@@ -251,7 +251,7 @@ impl<F: Read> Parse<F, Endian> for u16 {
         })
     }
 }
-impl<F: Read> Parse<F, Endian> for i16 {
+impl<F: Read> Parse<'_, F, Endian> for i16 {
     fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_2(f)?;
         Ok(match endian {
@@ -260,7 +260,7 @@ impl<F: Read> Parse<F, Endian> for i16 {
         })
     }
 }
-impl<F: Read> Parse<F, Endian> for u32 {
+impl<F: Read> Parse<'_, F, Endian> for u32 {
     fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_4(f)?;
         Ok(match endian {
@@ -269,7 +269,7 @@ impl<F: Read> Parse<F, Endian> for u32 {
         })
     }
 }
-impl<F: Read> Parse<F, Endian> for i32 {
+impl<F: Read> Parse<'_, F, Endian> for i32 {
     fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_4(f)?;
         Ok(match endian {
@@ -278,7 +278,7 @@ impl<F: Read> Parse<F, Endian> for i32 {
         })
     }
 }
-impl<F: Read> Parse<F, Endian> for u64 {
+impl<F: Read> Parse<'_, F, Endian> for u64 {
     fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_8(f)?;
         Ok(match endian {
@@ -287,7 +287,7 @@ impl<F: Read> Parse<F, Endian> for u64 {
         })
     }
 }
-impl<F: Read> Parse<F, Endian> for i64 {
+impl<F: Read> Parse<'_, F, Endian> for i64 {
     fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_8(f)?;
         Ok(match endian {
@@ -296,7 +296,7 @@ impl<F: Read> Parse<F, Endian> for i64 {
         })
     }
 }
-impl<F: Read> Parse<F, Endian> for f32 {
+impl<F: Read> Parse<'_, F, Endian> for f32 {
     fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_4(f)?;
         Ok(match endian {
@@ -305,7 +305,7 @@ impl<F: Read> Parse<F, Endian> for f32 {
         })
     }
 }
-impl<F: Read> Parse<F, Endian> for f64 {
+impl<F: Read> Parse<'_, F, Endian> for f64 {
     fn parse(f: &mut F, endian: Endian) -> ParseResult<Self> {
         let data = take_8(f)?;
         Ok(match endian {
@@ -315,8 +315,8 @@ impl<F: Read> Parse<F, Endian> for f64 {
     }
 }
 
-impl<D: Clone, F: Read, T: Parse<F, D>, const N: usize> Parse<F, D> for [T; N] {
-    fn parse(f: &mut F, d: D) -> ParseResult<Self> {
+impl<'a, D: Clone, F: Read, T: Parse<'a, F, D>, const N: usize> Parse<'a, F, D> for [T; N] {
+    fn parse<'b>(f: &'b mut F, d: D) -> ParseResult<Self> {
         // TODO: This might be able to be optimized out, but I don't want to rely on that.
         let mut data: Vec<T> = Vec::with_capacity(N);
         for _ in 0..N {
@@ -345,7 +345,7 @@ macro_rules! impl_parse_field {
 #[macro_export]
 macro_rules! impl_parse {
     ($on:ty, [$($name:ident : $e:ident : $typ:ty),*]) => {
-        impl $crate::parse::Parse<()> for $on {
+        impl $crate::parse::Parse<'_, ()> for $on {
             fn parse(f: &mut F, _d: ()) -> $crate::parse::ParseResult<Self>
             where
                 F: std::io::Seek + std::io::Read {
@@ -359,7 +359,7 @@ macro_rules! impl_parse {
         }
     };
     (newtype $on:ty, $name:ident : $e:ident : $typ:ty) => {
-        impl $crate::parse::Parse<()> for $on {
+        impl $crate::parse::Parse<'_, ()> for $on {
             fn parse(f: &mut F, _d: ()) -> $crate::parse::ParseResult<Self>
             where
                 F: std::io::Seek + std::io::Read {

@@ -49,7 +49,7 @@ impl ZString {
         self.0.as_mut_slice()
     }
 }
-impl<F: Read + Seek> Parse<F> for ZString {
+impl<F: Read + Seek> Parse<'_, F> for ZString {
     fn parse(f: &mut F, _d: ()) -> ParseResult<Self> {
         let data = take_until(f, ZString::TERMINATOR, false)?;
 
