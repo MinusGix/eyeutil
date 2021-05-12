@@ -50,7 +50,7 @@ impl ZString {
     }
 }
 impl<F: Read + Seek> Parse<F> for ZString {
-    fn parse(f: &mut F, _d: &mut ()) -> ParseResult<Self> {
+    fn parse(f: &mut F, _d: ()) -> ParseResult<Self> {
         let data = take_until(f, ZString::TERMINATOR, false)?;
 
         Ok(ZString::new(data))
@@ -77,7 +77,7 @@ mod tests {
     #[test]
     fn test_write_back() {
         let mut cursor = std::io::Cursor::new(NSTR);
-        let zstring = ZString::parse(&mut cursor, &mut ()).unwrap();
+        let zstring = ZString::parse(&mut cursor, ()).unwrap();
         assert_eq!(zstring.as_slice(), b"HELLO");
         assert_eq!(zstring.len(), 5);
         assert_eq!(zstring.is_empty(), false);
