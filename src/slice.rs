@@ -159,12 +159,8 @@ where
     }
 
     #[inline]
-    pub fn position_at_end(&mut self) -> std::io::Result<bool>
-    where
-        F: Seek,
-    {
-        let position = self.absolute_stream_position()?;
-        Ok(position == self.end())
+    pub fn is_position_at_end(&self, position: u64) -> bool {
+        position == self.end()
     }
 }
 impl<F> Read for InputSlice<F>
@@ -175,18 +171,16 @@ where
     /// If the
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        let current_position = self.stream_position()?;
-        if self.position_at_end()? {
+        let abs_position = self.absolute_stream_position()?;
+        if self.is_position_at_end(abs_position) {
             return Ok(0);
         }
 
-        let max = std::cmp::min(
-            buf.len() as u64,
-            self.get_distance_from_end(current_position),
-        ) as usize;
+        let dist = self.get_distance_from_end(abs_position);
+        let max = std::cmp::min(buf.len() as u64, dist) as usize;
         let buf = &mut buf[..max];
         let amount_read = self.input.read(buf)?;
-        debug_assert!(self.stream_position()? <= self.end());
+        debug_assert!(self.absolute_stream_position().unwrap() <= self.end());
         Ok(amount_read)
     }
 
@@ -253,12 +247,12 @@ mod tests {
 
     #[test]
     fn test_general() {
-        const input: &[u8] = &[
+        const INPUT: &[u8] = &[
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10,
         ];
-        let input_length = input.len() as u64;
+        let input_length = INPUT.len() as u64;
         println!("Data length: {}", input_length);
-        let cursor = Cursor::new(input);
+        let cursor = Cursor::new(INPUT);
         // This should be 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ,16
         // so [0, 16], or as written: [0, 17)
         let mut slice = InputSlice::new(cursor, 0..input_length).unwrap();
@@ -329,7 +323,7 @@ mod tests {
 
         assert_eq!(slice.stream_len().unwrap(), 14);
 
-        let mut cursor = Cursor::new(input);
+        let mut cursor = Cursor::new(INPUT);
         cursor.seek(SeekFrom::Start(3)).unwrap();
         let mut slice = InputSlice::new(cursor, 3..input_length).unwrap();
         assert_eq!(slice.stream_position().unwrap(), 0);
@@ -339,6 +333,14 @@ mod tests {
             data,
             &[3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10,]
         );
+
+        let mut cursor = Cursor::new(INPUT);
+        cursor.seek(SeekFrom::Start(3)).unwrap();
+        let mut slice = InputSlice::new(cursor, 3..5).unwrap();
+        assert_eq!(slice.stream_position().unwrap(), 0);
+        let mut data = Vec::new();
+        slice.read_to_end(&mut data).unwrap();
+        assert_eq!(data, &[3, 4]);
 
         // TODO: this needs more tests. Like I was able to read multiple bytes past the end
         //  when I only accidently had 1 extra byte..
