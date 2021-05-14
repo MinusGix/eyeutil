@@ -166,9 +166,6 @@ where
         let position = self.absolute_stream_position()?;
         Ok(position == self.end())
     }
-
-    //    pub fn into_inner
-    //
 }
 impl<F> Read for InputSlice<F>
 where
@@ -256,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_general() {
-        let input = vec![
+        const input: &[u8] = &[
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10,
         ];
         let input_length = input.len() as u64;
@@ -331,6 +328,17 @@ mod tests {
         assert_eq!(slice.stream_position().unwrap(), 14);
 
         assert_eq!(slice.stream_len().unwrap(), 14);
+
+        let mut cursor = Cursor::new(input);
+        cursor.seek(SeekFrom::Start(3)).unwrap();
+        let mut slice = InputSlice::new(cursor, 3..input_length).unwrap();
+        assert_eq!(slice.stream_position().unwrap(), 0);
+        let mut data = Vec::new();
+        slice.read_to_end(&mut data).unwrap();
+        assert_eq!(
+            data,
+            &[3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10,]
+        );
 
         // TODO: this needs more tests. Like I was able to read multiple bytes past the end
         //  when I only accidently had 1 extra byte..
