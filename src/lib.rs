@@ -1,4 +1,7 @@
-use std::io::{Read, Seek, SeekFrom};
+use std::{
+    fmt::Result,
+    io::{ErrorKind, Read, Seek, SeekFrom},
+};
 
 pub mod data_size;
 pub mod parse;
@@ -96,6 +99,39 @@ pub fn skip<F: Read, const CHUNK: usize>(mut f: F, mut amount: usize) -> std::io
     Ok(())
 }
 
+/// Reads to fill the buffer if it can.
+/// Values up to the returned Ok(usize) are valid
+/// If there was an error then no assurances are made.
+///
+/// Currently, Rust has `read` and `read_exact`, which work pretty well in many cases
+/// But if you want to only read some bit of data that may not fit your buffer, then
+/// you'd have to use `read`.
+/// The problem with read is that it doesn't have to read all the data it can on the first go
+/// So this function tries to finish this trifecta by allowing the reading of 'as much as we can' or
+/// until we hit the end of the buffer.
+#[inline]
+pub fn read_if_possible<F: Read>(mut f: F, mut buf: &mut [u8]) -> std::io::Result<usize> {
+    let mut amount_read: usize = 0;
+    while !buf.is_empty() {
+        match f.read(buf) {
+            // We got no data, so we assume that we're done here.
+            Ok(0) => break,
+            // TODO: Is there a better way of handling this than a saturating add?
+            Ok(c) => {
+                amount_read = amount_read.saturating_add(c);
+                // Reassign the buffer
+                buf = &mut buf[c..];
+            }
+            // We were interrupted in reading, so we ignore it and retry.
+            Err(e) if e.kind() == ErrorKind::Interrupted => {}
+            Err(e) => return Err(e),
+        };
+    }
+
+    // We don't bother to check if it wasn't empty.
+    Ok(amount_read)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -136,5 +172,22 @@ mod tests {
         assert_eq!(cursor.position(), 2);
         skip::<_, 16>(&mut cursor, 4).unwrap();
         assert_eq!(cursor.position(), 6);
+    }
+
+    #[test]
+    pub fn test_read_if_possible() {
+        let mut cursor = std::io::Cursor::new(&DATA);
+        let mut buf = [0; 5];
+        assert_eq!(read_if_possible(&mut cursor, &mut buf).unwrap(), 5);
+        assert_eq!(buf, [0x1, 0x2, 0x3, 0x4, 0x5]);
+
+        assert_eq!(read_if_possible(&mut cursor, &mut buf).unwrap(), 5);
+        assert_eq!(buf, [0x6, 0x7, 0x8, 0x9, 0xa]);
+
+        assert_eq!(read_if_possible(&mut cursor, &mut buf).unwrap(), 5);
+        assert_eq!(buf, [0xb, 0xc, 0xd, 0xe, 0xf]);
+
+        assert_eq!(read_if_possible(&mut cursor, &mut buf).unwrap(), 1);
+        assert_eq!(buf[0], 0x10);
     }
 }
