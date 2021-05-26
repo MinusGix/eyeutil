@@ -156,6 +156,18 @@ where
     Ok(result)
 }
 
+pub fn many_count<F: Read, R: Parse<F, D>, D: Clone>(
+    f: &mut F,
+    d: D,
+    amount: usize,
+) -> ParseResult<Vec<R>> {
+    let mut result: Vec<R> = Vec::with_capacity(amount);
+    for _ in 0..amount {
+        result.push(R::parse(f, d.clone())?);
+    }
+    Ok(result)
+}
+
 // TODO: tag_peek
 /// Expect certain bytes. Does not return them.
 pub fn tag<F, X>(f: &mut F, data: &[X]) -> ParseResult<()>
