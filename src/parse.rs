@@ -4,6 +4,7 @@ use std::{
     error::Error,
     fmt::Debug,
     io::{Read, Seek, SeekFrom},
+    marker::PhantomData,
 };
 
 #[derive(Debug)]
@@ -132,7 +133,7 @@ where
 }
 
 // TODO: many_parse_peek
-pub fn many_parse<'a, F, P, D>(f: &'a mut F, d: D) -> ParseResult<Vec<P>>
+pub fn many_parse<F, P, D>(f: &mut F, d: D) -> ParseResult<Vec<P>>
 where
     F: Read + Seek,
     P: Parse<F, D>,
@@ -154,6 +155,38 @@ where
     debug_assert_eq!(stream_position(f)?, stream_len);
 
     Ok(result)
+}
+
+struct ManyCountParseIter<'a, T: Parse<F, D>, F: Read, D: Clone> {
+    f: &'a mut F,
+    d: D,
+    amount: usize,
+    _marker: PhantomData<*const T>,
+}
+impl<'a, T: Parse<F, D>, F: Read, D: Clone> Iterator for ManyCountParseIter<'a, T, F, D> {
+    type Item = ParseResult<T>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.amount == 0 {
+            None
+        } else {
+            self.amount -= 1;
+            Some(T::parse(self.f, self.d.clone()))
+        }
+    }
+}
+
+// TODO: is that 'a stashed onto D correct?
+pub fn many_count_iter<'a, T: Parse<F, D>, F: Read, D: Clone + 'a>(
+    f: &'a mut F,
+    d: D,
+    amount: usize,
+) -> impl Iterator<Item = ParseResult<T>> + 'a {
+    ManyCountParseIter {
+        f,
+        d,
+        amount,
+        _marker: PhantomData,
+    }
 }
 
 pub fn many_count<F: Read, R: Parse<F, D>, D: Clone>(
