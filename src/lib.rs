@@ -8,6 +8,7 @@ pub mod parse;
 pub mod slice;
 pub mod writable;
 pub mod zstring;
+pub use bstr;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum EnumConversionError<V> {
